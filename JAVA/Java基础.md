@@ -404,3 +404,226 @@ public static String getStr() {
 }
 ```
 
+# Java基础常见面试题总结(下)
+
+## 异常
+
+**Java 异常类层次结构图概览**：
+
+![Java 异常类层次结构图](https://oss.javaguide.cn/github/javaguide/java/basis/types-of-exceptions-in-java.png)
+
+### Exception 和 Error 有什么区别？
+
+在 Java 中，所有的异常都有一个共同的祖先 `java.lang` 包中的 `Throwable` 类。`Throwable` 类有两个重要的子类:
+
+- **`Exception`** :程序本身可以处理的异常，可以通过 `catch` 来进行捕获。`Exception` 又可以分为 Checked Exception (受检查异常，必须处理) 和 Unchecked Exception (不受检查异常，可以不处理)。
+- **`Error`**：`Error` 属于程序无法处理的错误 ，我们没办法通过 `catch` 来进行捕获不建议通过`catch`捕获 。例如 Java 虚拟机运行错误（`Virtual MachineError`）、虚拟机内存不够错误(`OutOfMemoryError`)、类定义错误（`NoClassDefFoundError`）等 。这些异常发生时，Java 虚拟机（JVM）一般会选择线程终止.
+
+### Checked Exception 和 Unchecked Exception 有什么区别？
+
+**Checked Exception** 即 受检查异常 ，Java 代码在编译过程中，如果受检查异常没有被 `catch`或者`throws` 关键字处理的话，就没办法通过编译。
+
+**Unchecked Exception** 即 **不受检查异常** ，Java 代码在编译过程中 ，我们即使不处理不受检查异常也可以正常通过编译。
+
+### Throwable 类常用方法有哪些？
+`String getMessage()`: 返回异常发生时的简要描述
+`String toString()`: 返回异常发生时的详细信息
+`String getLocalizedMessage()`: 返回异常对象的本地化信息。使用 `Throwable` 的子类覆盖这个方法，可以生成本地化信息。如果子类没有覆盖该方法，则该方法返回的信息与 `getMessage()`返回的结果相同
+`void printStackTrace()`: 在控制台上打印 `Throwable` 对象封装的异常信息
+
+### try-catch-finally 如何使用？
+- `try`块：
+- `catch`块：
+- `finally` 块：
+  **注意：不要在 finally 语句块中使用 return!** 当 try 语句和 finally 语句中都有 return 语句时，try 语句块中的 return 语句会被忽略。这是因为 try 语句中的 return 返回值会先被暂存在一个本地变量中，当执行到 finally 语句中的 return 之后，这个本地变量的值就变为了 finally 语句中的 return 返回值
+
+### finally 中的代码一定会执行吗？
+1、 不一定 2、finally 之前虚拟机被终止、程序所在线程死亡、关闭CPU
+### 如何使用 `try-with-resources` 代替`try-catch-finally`？
+
+ **适用范围（资源的定义）：** 任何实现 `java.lang.AutoCloseable`或者 `java.io.Closeable` 的对象
+
+**关闭资源和 finally 块的执行顺序：** 在 `try-with-resources` 语句中，任何 catch 或 finally 块在声明的资源关闭后运行
+Java 中类似于`InputStream`、`OutputStream`、`Scanner`、`PrintWriter`等的资源都需要我们调用`close()`方法来手动关闭，一般情况下我们都是通过`try-catch-finally`语句来实现这个需求，如下：
+
+```java
+//读取文本文件的内容
+Scanner scanner = null;
+try {
+    scanner = new Scanner(new File("D://read.txt"));
+    while (scanner.hasNext()) {
+        System.out.println(scanner.nextLine());
+    }
+} catch (FileNotFoundException e) {
+    e.printStackTrace();
+} finally {
+    if (scanner != null) {
+        scanner.close();
+    }
+}
+```
+使用 Java 7 之后的 `try-with-resources` 语句改造上面的代码:
+
+```java
+try (Scanner scanner = new Scanner(new File("test.txt"))) {
+    while (scanner.hasNext()) {
+        System.out.println(scanner.nextLine());
+    }
+} catch (FileNotFoundException fnfe) {
+    fnfe.printStackTrace();
+}
+```
+
+当然多个资源需要关闭的时候，使用 `try-with-resources` 实现起来也非常简单，如果你还是用`try-catch-finally`可能会带来很多问题。
+通过使用分号分隔，可以在`try-with-resources`块中声明多个资源。
+```java
+try (BufferedInputStream bin = new BufferedInputStream(new FileInputStream(new File("test.txt")));
+     BufferedOutputStream bout = new BufferedOutputStream(new FileOutputStream(new File("out.txt")))) {
+    int b;
+    while ((b = bin.read()) != -1) {
+        bout.write(b);
+    }
+}
+catch (IOException e) {
+    e.printStackTrace();
+}
+```
+
+### 异常使用有哪些需要注意的地方？
+
+- 不要把异常定义为静态变量，因为这样会导致异常栈信息错乱。每次手动抛出异常，我们都需要手动 new 一个异常对象抛出。
+- 抛出的异常信息一定要有意义。
+- 建议抛出更加具体的异常比如字符串转换为数字格式错误的时候应该抛出`NumberFormatException`而不是其父类`IllegalArgumentException`。
+- 使用日志打印异常之后就不要再抛出异常了（两者不要同时存在一段代码逻辑中）。
+- ……
+
+## 泛型
+
+###  什么是泛型？有什么作用？
+
+JDK 5 、强代码的可读性以及稳定性。
+
+### 泛型的使用方式有哪几种？
+
+三种使用方式:**泛型类**、**泛型接口**、**泛型方法**。
+
+**1.泛型类**：
+
+```java
+//此处T可以随便写为任意标识，常见的如T、E、K、V等形式的参数常用于表示泛型
+//在实例化泛型类时，必须指定T的具体类型
+public class Generic<T>{
+    private T key;
+    public Generic(T key) {
+        this.key = key;
+    }
+    public T getKey(){
+        return key;
+    }
+}
+```
+
+如何实例化泛型类：
+
+```java
+Generic<Integer> genericInteger = new Generic<Integer>(123456);
+```
+
+**2.泛型接口**：
+
+```java
+public interface Generator<T> {
+    public T method();
+}
+```
+
+实现泛型接口，不指定类型：
+
+```java
+class GeneratorImpl<T> implements Generator<T>{
+    @Override
+    public T method() {
+        return null;
+    }
+}
+```
+
+实现泛型接口，指定类型：
+
+```java
+class GeneratorImpl<T> implements Generator<String>{
+    @Override
+    public String method() {
+        return "hello";
+    }
+}
+```
+
+**3.泛型方法**：
+
+```java
+   public static < E > void printArray( E[] inputArray )
+   {
+         for ( E element : inputArray ){
+            System.out.printf( "%s ", element );
+         }
+         System.out.println();
+    }
+```
+
+使用：
+
+```java
+// 创建不同类型数组：Integer, Double 和 Character
+Integer[] intArray = { 1, 2, 3 };
+String[] stringArray = { "Hello", "World" };
+printArray( intArray  );
+printArray( stringArray  );
+```
+
+注意: `public static < E > void printArray( E[] inputArray )` 一般被称为静态泛型方法;在 java 中泛型只是一个占位符，必须在传递类型后才能使用。类在实例化时才能真正的传递类型参数，由于静态方法的加载先于类的实例化，也就是说类中的泛型还没有传递真正的类型参数，静态的方法的加载就已经完成了，所以静态泛型方法是没有办法使用类上声明的泛型的。只能使用自己声明的 `<E>`
+
+### 项目中哪里用到了泛型？
+
+- 自定义接口通用返回结果 `CommonResult<T>` 通过参数 `T` 可根据具体的返回类型动态指定结果的数据类型
+- 定义 `Excel` 处理类 `ExcelUtil<T>` 用于动态指定 `Excel` 导出的数据类型
+- 构建集合工具类（参考 `Collections` 中的 `sort`, `binarySearch` 方法）。
+- ……
+
+## 反射
+
+### 何谓反射？
+
+在运行时分析类以及执行类中方法的能力。通过反射你可以获取任意一个类的所有属性和方法，你还可以调用这些方法和属性。
+
+### 反射的优缺点？
+反射可以让我们的代码更加灵活、为各种框架提供开箱即用的功能提供了便利。
+不过，反射让我们在运行时有了分析操作类的能力的同时，也增加了安全问题，比如可以无视泛型参数的安全检查（泛型参数的安全检查发生在编译时）。另外，反射的性能也要稍差点，不过，对于框架来说实际是影响不大的。
+
+### 反射的应用场景？
+
+Spring/Spring Boot、MyBatis 等等框架中都大量使用了反射机制。
+
+**这些框架中也大量使用了动态代理，而动态代理的实现也依赖反射。**
+
+比如下面是通过 JDK 实现动态代理的示例代码，其中就使用了反射类 `Method` 来调用指定的方法。
+```java
+public class DebugInvocationHandler implements InvocationHandler {
+    /**
+     * 代理类中的真实对象
+     */
+    private final Object target;
+    public DebugInvocationHandler(Object target) {
+        this.target = target;
+    }
+    public Object invoke(Object proxy, Method method, Object[] args) throws InvocationTargetException, IllegalAccessException {
+        System.out.println("before method " + method.getName());
+        Object result = method.invoke(target, args);
+        System.out.println("after method " + method.getName());
+        return result;
+    }
+}
+```
+另外，像 Java 中的一大利器 **注解** 的实现也用到了反射。
+为什么你使用 Spring 的时候 ，一个`@Component`注解就声明了一个类为 Spring Bean 呢？为什么你通过一个 `@Value`注解就读取到配置文件中的值呢？究竟是怎么起作用的呢？
+这些都是因为你可以基于反射分析类，然后获取到类/属性/方法/方法的参数上的注解。你获取到注解之后，就可以做进一步的处理。
