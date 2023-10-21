@@ -243,3 +243,164 @@ public static void method2(String arg1, String... args) {
 
 - **浅拷贝**：浅拷贝会在堆上创建一个新的对象（区别于引用拷贝的一点），不过，如果原对象内部的属性是引用类型的话，浅拷贝会直接复制内部对象的引用地址，也就是说拷贝对象和原对象共用同一个内部对象。
 - **深拷贝**：深拷贝会完全复制整个对象，包括这个对象所包含的内部对象。
+
+## Object
+
+###  Object 类的常见方法有哪些？
+
+所有方法的父类、JVM相关getClass、finalize，编程相关hashCode、equals、toString、clone，多线程闲逛notify、notifyAll、wait
+
+### == 和 equals() 的区别
+
+基本数据类型和引用数据类型
+
+### hashCode() 有什么用？
+
+获取哈希码，在使用List等集合数据类型的时候能提高存储效率
+
+### 为什么要有 hashCode？
+
+> 当你把对象加入 `HashSet` 时，`HashSet` 会先计算对象的 `hashCode` 值来判断对象加入的位置，同时也会与其他已经加入的对象的 `hashCode` 值作比较，如果没有相符的 `hashCode`，`HashSet` 会假设对象没有重复出现。但是如果发现有相同 `hashCode` 值的对象，这时会调用 `equals()` 方法来检查 `hashCode` 相等的对象是否真的相同。如果两者相同，`HashSet` 就不会让其加入操作成功。如果不同的话，就会重新散列到其他位置。这样我们就大大减少了 `equals` 的次数，相应就大大提高了执行速度。
+
+**那为什么 JDK 还要同时提供这两个方法呢？**
+
+这是因为在一些容器（比如 `HashMap`、`HashSet`）中，有了 `hashCode()` 之后，判断元素是否在对应容器中的效率会更高（参考添加元素进`HashSet`的过程）！
+
+我们在前面也提到了添加元素进`HashSet`的过程，如果 `HashSet` 在对比的时候，同样的 `hashCode` 有多个对象，它会继续使用 `equals()` 来判断是否真的相同。也就是说 `hashCode` 帮助我们大大缩小了查找成本。
+
+**那为什么不只提供 `hashCode()` 方法呢？**
+
+这是因为两个对象的`hashCode` 值相等并不代表两个对象就相等。
+
+**那为什么两个对象有相同的 `hashCode` 值，它们也不一定是相等的？**
+
+因为 `hashCode()` 所使用的哈希算法也许刚好会让多个对象传回相同的哈希值。越糟糕的哈希算法越容易碰撞，但这也与数据值域分布的特性有关（所谓哈希碰撞也就是指的是不同的对象得到相同的 `hashCode` )。
+
+总结下来就是：
+
+- 如果两个对象的`hashCode` 值相等，那这两个对象不一定相等（哈希碰撞）。
+- 如果两个对象的`hashCode` 值相等并且`equals()`方法也返回 `true`，我们才认为这两个对象相等。
+- 如果两个对象的`hashCode` 值不相等，我们就可以直接认为这两个对象不相等
+### 为什么重写 equals() 时必须重写 hashCode() 方法？
+
+- `equals` 方法判断两个对象是相等的，那这两个对象的 `hashCode` 值也要相等。
+- 两个对象有相同的 `hashCode` 值，他们也不一定是相等的（哈希碰撞）。
+  **思考**：重写 `equals()` 时没有重写 `hashCode()` 方法的话，使用 `HashMap` 可能会出现什么问题。
+
+1. **不符合约定**：在Java中，如果两个对象相等（根据 `equals()` 的定义），它们的 `hashCode()` 值应该相等。这是 `hashCode()` 方法的通用约定，如果没有遵循，它会引发不一致性问题。
+
+2. **哈希表中的元素无法被正确定位**：`HashMap`、`HashSet` 等哈希表数据结构通过 `hashCode()` 来确定元素存储的位置。如果两个相等的对象（根据 `equals()` 的定义）拥有不同的 `hashCode()`，它们将被存储在不同的位置，即使它们应该被视为相等。
+
+3. **无法正确查找对象**：如果一个对象在哈希表中被存储，而在后续查找时它的 `hashCode()` 值发生了变化，那么你将无法通过它来查找对象，因为哈希表无法准确定位到该对象。
+
+## String
+
+### String、StringBuffer、StringBuilder 的区别？
+
+可变性、线程安全性、性能
+
+### String 为什么是不可变的?
+
+1. 保存字符串的数组被 `final` 修饰且为私有的，并且`String` 类没有提供/暴露修改这个字符串的方法。
+
+2. `String` 类被 `final` 修饰导致其不能被继承，进而避免了子类破坏 `String` 不可变。
+
+   在 Java 9 之后，`String`、`StringBuilder` 与 `StringBuffer` 的实现改用 `byte` 数组存储字符串。
+
+### 字符串拼接用“+” 还是 StringBuilder?
+
+可以看出，字符串对象通过“+”的字符串拼接方式，实际上是通过 `StringBuilder` 调用 `append()` 方法实现的，拼接完成之后调用 `toString()` 得到一个 `String` 对象 。
+
+不过，使用 “+” 进行字符串拼接会产生大量的临时对象的问题在 JDK9 中得到了解决。在 JDK9 当中，字符串相加 “+” 改为了用动态方法 `makeConcatWithConstants()` 来实现，而不是大量的 `StringBuilder` 了。
+
+### String#equals() 和 Object#equals() 有何区别？
+
+`String` 中的 `equals` 方法是被重写过的，比较的是 String 字符串的值是否相等。 `Object` 的 `equals` 方法是比较的对象的内存地址。
+
+###  字符串常量池的作用了解吗？
+
+**字符串常量池** 是 JVM 为了提升性能和减少内存消耗针对字符串（String 类）专门开辟的一块区域，主要目的是为了避免字符串的重复创建。
+
+### String s1 = new String("abc");这句话创建了几个字符串对象？
+
+会创建 1 或 2 个字符串对象。
+
+1、如果字符串常量池中不存在字符串对象“abc”的引用，那么它将首先在字符串常量池中创建，然后在堆空间中创建，因此将创建总共 2 个字符串对象。
+
+2、如果字符串常量池中已存在字符串对象“abc”的引用，则只会在堆中创建 1 个字符串对象“abc”。
+
+### String#intern 方法有什么作用?
+
+`String.intern()` 是一个 native（本地）方法，其作用是将指定的字符串对象的引用保存在字符串常量池中，可以简单分为两种情况：
+
+- 如果字符串常量池中保存了对应的字符串对象的引用，就直接返回该引用。
+- 如果字符串常量池中没有保存了对应的字符串对象的引用，那就在常量池中创建一个指向该字符串对象的引用并返回。
+
+### String 类型的变量和常量做“+”运算时发生了什么？
+
+先来看字符串不加 `final` 关键字拼接的情况（JDK1.8）：
+
+```java
+String str1 = "str";
+String str2 = "ing";
+String str3 = "str" + "ing";
+String str4 = str1 + str2;
+String str5 = "string";
+System.out.println(str3 == str4);//false
+System.out.println(str3 == str5);//true
+System.out.println(str4 == str5);//false
+```
+
+**对于编译期可以确定值的字符串，也就是常量字符串 ，jvm 会将其存入字符串常量池。并且，字符串常量拼接得到的字符串常量在编译阶段就已经被存放字符串常量池，这个得益于编译器的优化。**
+
+在编译过程中，Javac 编译器（下文中统称为编译器）会进行一个叫做 **常量折叠(Constant Folding)** 的代码优化。
+
+常量折叠会把常量表达式的值求出来作为常量嵌在最终生成的代码中，这是 Javac 编译器会对源代码做的极少量优化措施之一(代码优化几乎都在即时编译器中进行)。
+
+对于 `String str3 = "str" + "ing";` 编译器会给你优化成 `String str3 = "string";` 。
+
+并不是所有的常量都会进行折叠，只有编译器在程序编译期就可以确定值的常量才可以：
+
+- 基本数据类型( `byte`、`boolean`、`short`、`char`、`int`、`float`、`long`、`double`)以及字符串常量。
+- `final` 修饰的基本数据类型和字符串变量
+- 字符串通过 “+”拼接得到的字符串、基本数据类型之间算数运算（加减乘除）、基本数据类型的位运算（<<、>>、>>> ）
+**引用的值在程序编译期是无法确定的，编译器无法对其进行优化。**
+
+对象引用和“+”的字符串拼接方式，实际上是通过 `StringBuilder` 调用 `append()` 方法实现的，拼接完成之后调用 `toString()` 得到一个 `String` 对象 。
+
+```java
+String str4 = new StringBuilder().append(str1).append(str2).toString();
+```
+
+我们在平时写代码的时候，尽量避免多个字符串对象拼接，因为这样会重新创建对象。如果需要改变字符串的话，可以使用 `StringBuilder` 或者 `StringBuffer`。
+
+不过，字符串使用 `final` 关键字声明之后，可以让编译器当做常量来处理。
+
+示例代码：
+
+```java
+final String str1 = "str";
+final String str2 = "ing";
+// 下面两个表达式其实是等价的
+String c = "str" + "ing";// 常量池中的对象
+String d = str1 + str2; // 常量池中的对象
+System.out.println(c == d);// true
+```
+
+被 `final` 关键字修饰之后的 `String` 会被编译器当做常量来处理，编译器在程序编译期就可以确定它的值，其效果就相当于访问常量。
+
+如果 ，编译器在运行时才能知道其确切值的话，就无法对其优化。
+
+示例代码（`str2` 在运行时才能确定其值）：
+
+```java
+final String str1 = "str";
+final String str2 = getStr();
+String c = "str" + "ing";// 常量池中的对象
+String d = str1 + str2; // 在堆上创建的新的对象
+System.out.println(c == d);// false
+public static String getStr() {
+      return "ing";
+}
+```
+
